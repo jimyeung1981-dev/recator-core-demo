@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Reactor Core Agent Web Service</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --surface-color: #111827;
+            --surface-border: #1f2937;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --thinking-bg: #1e1b4b;
+            --thinking-border: #4338ca;
+            --tool-bg: #064e3b;
+            --tool-border: #059669;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--surface-border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .badge {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 9999px;
+            padding: 2px 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-reactor {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 960px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding-right: 8px;
+            margin-bottom: 16px;
+        }
+
+        #chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-window::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+
+        .msg-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .msg-author {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .msg-bubble {
+            padding: 14px 18px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 14.5px;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .msg-bubble.user {
+            background: #1e3a8a;
+            color: #ffffff;
+            align-self: flex-end;
+            max-width: 80%;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg-bubble.assistant {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            color: var(--text-main);
+            align-self: flex-start;
+            max-width: 100%;
+            border-bottom-left-radius: 2px;
+        }
+
+        .thinking-box {
+            background: var(--thinking-bg);
+            border: 1px solid var(--thinking-border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #c7d2fe;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .thinking-label {
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tool-box {
+            background: var(--tool-bg);
+            border: 1px solid var(--tool-border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            font-size: 12.5px;
+            color: #a7f3d0;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .quick-prompts {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .chip-btn {
+            background: #111827;
+            border: 1px solid var(--surface-border);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 9999px;
+            font-size: 12.5px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .chip-btn:hover {
+            color: var(--text-main);
+            border-color: var(--accent-color);
+            background: #1e293b;
+        }
+
+        .input-area {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 14.5px;
+            outline: none;
+            resize: none;
+            height: 24px;
+            max-height: 120px;
+        }
+
+        .send-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .send-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-title">
+        <h1>Project Reactor Core Agent Service</h1>
+        <span class="badge badge-reactor">reactor-core</span>
+        <span class="badge">Spring Boot WebFlux</span>
+        <span class="badge">DeepSeek-V4.1-Flash</span>
+    </div>
+    <div class="badge badge-live">
+        <span class="dot"></span>
+        API Online (Port 8080)
+    </div>
+</header>
+
+<main>
+    <div id="chat-window">
+        <div class="msg-container">
+            <span class="msg-author">Java 架构导师 Agent (Reactor Core)</span>
+            <div class="msg-bubble assistant">
+你好！我是基于纯 Project Reactor (reactor-core) 与 SiliconFlow DeepSeek-V4.1-Flash 驱动的响应式智能体。
+零依赖第三方 Agent 框架，完全由 Reactor 响应式流处理驱动，具备以下核心能力：
+1. 💡 深度思考流 (Thinking Stream) 逐字实时渲染
+2. ⚙️ 本地真实 Java 冒泡排序算法工具响应式调用 (Tool Execution)
+3. 💬 最终答案高可用异步非阻塞推送 (Server-Sent Events)
+
+您可以直接在下方输入框中提问，或点击上方的推荐测试指令。
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-prompts">
+        <button class="chip-btn" onclick="sendPrompt('请详细解释一下 Java 的冒泡排序（Bubble Sort）的用途、写法、优劣。')">📘 解释冒泡排序用途与写法优劣</button>
+        <button class="chip-btn" onclick="sendPrompt('请调用 simulate_bubble_sort 工具演示数组 29, 10, 14, 37, 14 的排序过程')">⚙️ 执行冒泡排序工具仿真</button>
+        <button class="chip-btn" onclick="sendPrompt('简述为什么生产环境首选 Arrays.sort 而非冒泡排序？')">⚡ 对比 JDK 双轴快排与冒泡</button>
+    </div>
+
+    <div class="input-area">
+        <textarea id="prompt-input" placeholder="输入你想与 Reactor Agent 交流的技术问题..." rows="1" onkeydown="handleKey(event)"></textarea>
+        <button id="send-button" class="send-btn" onclick="submitCurrentPrompt()">发送</button>
+    </div>
+</main>
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const promptInput = document.getElementById('prompt-input');
+    const sendButton = document.getElementById('send-button');
+
+    function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function handleKey(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitCurrentPrompt();
+        }
+    }
+
+    function sendPrompt(text) {
+        promptInput.value = text;
+        submitCurrentPrompt();
+    }
+
+    function submitCurrentPrompt() {
+        const text = promptInput.value.trim();
+        if (!text) return;
+
+        promptInput.value = '';
+        sendButton.disabled = true;
+
+        // 1. 添加用户消息
+        appendMessage('user', text);
+
+        // 2. 准备 Assistant 消息容器
+        const assistantContainer = document.createElement('div');
+        assistantContainer.className = 'msg-container';
+
+        const authorLabel = document.createElement('span');
+        authorLabel.className = 'msg-author';
+        authorLabel.textContent = 'Java 架构导师 Agent (Streaming)';
+        assistantContainer.appendChild(authorLabel);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble assistant';
+        assistantContainer.appendChild(bubble);
+
+        let thinkingBox = null;
+        let toolBox = null;
+        let textSpan = document.createElement('span');
+        bubble.appendChild(textSpan);
+
+        chatWindow.appendChild(assistantContainer);
+        scrollToBottom();
+
+        // 3. 建立 SSE 连接
+        const eventSource = new EventSource(`/api/chat/stream?prompt=${encodeURIComponent(text)}`);
+
+        eventSource.addEventListener('thinking', (e) => {
+            if (!thinkingBox) {
+                thinkingBox = document.createElement('div');
+                thinkingBox.className = 'thinking-box';
+                thinkingBox.innerHTML = '<div class="thinking-label">💡 深度思考 (Reasoning):</div>';
+                bubble.insertBefore(thinkingBox, textSpan);
+            }
+            thinkingBox.appendChild(document.createTextNode(e.data));
+            scrollToBottom();
+        });
+
+        eventSource.addEventListener('tool', (e) => {
+            if (!toolBox) {
+                toolBox = document.createElement('div');
+                toolBox.className = 'tool-box';
+                bubble.insertBefore(toolBox, textSpan);
+            }
+            toolBox.textContent += e.data + '\n';
+            scrollToBottom();
+        });
+
+        eventSource.addEventListener('tool_result', (e) => {
+            if (!toolBox) {
+                toolBox = document.createElement('div');
+                toolBox.className = 'tool-box';
+                bubble.insertBefore(toolBox, textSpan);
+            }
+            toolBox.textContent += e.data;
+            scrollToBottom();
+        });
+
+        eventSource.addEventListener('text', (e) => {
+            textSpan.textContent += e.data;
+            scrollToBottom();
+        });
+
+        eventSource.addEventListener('done', () => {
+            eventSource.close();
+            sendButton.disabled = false;
+            authorLabel.textContent = 'Java 架构导师 Agent';
+        });
+
+        eventSource.onerror = (err) => {
+            console.error('SSE Error:', err);
+            eventSource.close();
+            sendButton.disabled = false;
+        };
+    }
+
+    function appendMessage(role, text) {
+        const container = document.createElement('div');
+        container.className = 'msg-container';
+
+        const author = document.createElement('span');
+        author.className = 'msg-author';
+        author.textContent = role === 'user' ? '你' : 'Java 架构导师 Agent';
+        container.appendChild(author);
+
+        const bubble = document.createElement('div');
+        bubble.className = `msg-bubble ${role}`;
+        bubble.textContent = text;
+        container.appendChild(bubble);
+
+        chatWindow.appendChild(container);
+        scrollToBottom();
+    }
+</script>
+</body>
+</html>

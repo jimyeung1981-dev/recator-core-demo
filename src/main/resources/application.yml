@@ -1,0 +1,14 @@
+server:
+  port: 8080
+
+reactor:
+  agent:
+    base-url: ${SILICONFLOW_BASE_URL:https://api.siliconflow.cn/v1}
+    api-key: ${SILICONFLOW_API_KEY:sk-fvuvqgswjtkczlhlvxouhhtqxlauqzfspkzrtdgcmbptnakh}
+    model-name: ${SILICONFLOW_MODEL:deepseek-ai/DeepSeek-V4.1-Flash}
+
+logging:
+  level:
+    root: INFO
+    com.example: INFO
+    reactor.netty: WARN
